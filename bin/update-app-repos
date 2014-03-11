@@ -1,0 +1,53 @@
+#!/bin/bash
+
+set -e
+
+source "${BASH_SOURCE%/*}/setup.bash"
+
+main() {
+  read-conf
+  git config -f conf/apps.ini --get-regexp '^app\..*\.remote$' | (
+    while read name url; do
+      name="${name%.remote}"
+      branch="$(git config -f conf/apps.ini $name.branch)"
+      name="${name#app.}"
+      dir="$apps_directory/$name"
+      if [ -d "$dir/.git" ]; then
+        git-pull-repo
+      else
+        git-clone-repo
+      fi
+    done
+  )
+}
+
+git-clone-repo() {
+  (
+    set -x
+    git clone "$url" "$dir" -b "$branch"
+  )
+}
+
+git-pull-repo() {
+  (
+    echo "+ cd $dir" >&2
+    cd "$dir"
+    (
+      git rev-parse --git-dir &> /dev/null ||
+        die "Not inside a git repository."
+      git diff-files --quiet --ignore-submodules ||
+        die "Can't update. Unstaged changes."
+      git diff-index --quiet --ignore-submodules HEAD ||
+        die "Can't update. Working tree has changes."
+      git diff-index --quiet --cached --ignore-submodules HEAD ||
+        die "Can't update. Index has changes."
+    )
+    set -x
+    git checkout "$branch"
+    git pull --rebase
+  )
+}
+
+[ "$BASH_SOURCE" == "$0" ] && main "$@"
+
+# vim: set lisp:

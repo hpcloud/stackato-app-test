@@ -1,0 +1,25 @@
+#!/bin/bash
+
+set -e
+
+source "${BASH_SOURCE%/*}/setup.bash"
+
+main() {
+  name=${1:?'First argument is app name'}
+
+  read-conf
+
+  (
+    cd "$apps_directory/$name"
+
+    echo
+    echo "=== Testing 'stackato push -n' for '$name'"
+    echo
+
+    stackato push -n
+  )
+}
+
+[ "$BASH_SOURCE" == "$0" ] && main "$@"
+
+# vim: set lisp:

@@ -1,0 +1,96 @@
+#!/bin/bash
+
+set -e
+
+source "${BASH_SOURCE%/*}/setup.bash"
+
+USAGE="\
+
+Usage:
+    $0 [<options>] [<app-name>...]
+
+Options:
+    -h, --help          -- Print this help
+    --list              -- List all the known apps by name
+    --first=<app>       -- Start testing on this app
+    --after=<app>       -- Start testing apps after this one
+"
+
+main() {
+  local all_apps=() list= first= after=
+  get-options "$@"
+
+  read-conf
+
+  for name in ${all_apps[@]}; do
+    branch="$(git config -f conf/apps.ini app.$name.branch)"
+
+    if [ -n "$tag" ]; then
+      if [ -z "$(git config -f conf/apps.ini --get-all app.$name.tag "^$tag\$")" ]; then
+        continue
+      fi
+    fi
+
+    if [ -n "$list" ]; then
+      echo ">>> $name"
+      continue
+    fi
+
+    if [ -n "$first" ]; then
+      if [ "$first" == "$name" ]; then
+        first=
+      else
+        continue
+      fi
+    fi
+
+    if [ -n "$after" ]; then
+      if [ "$after" == "$name" ]; then
+        after=
+      fi
+      continue
+    fi
+
+    PATH=./bin:$PATH test-app "$name" "$branch"
+  done
+}
+
+get-options() {
+  for arg; do
+    case "$arg" in
+      -h|--help)
+        echo "$USAGE"
+        exit 0
+        ;;
+      --list)
+        list=1
+        ;;
+      --after=*)
+        after="${arg#--after=}"
+        ;;
+      --first=*)
+        first="${arg#--first=}"
+        ;;
+      --tag=*)
+        tag="${arg#--tag=}"
+        ;;
+      *)
+        all_apps+=("$arg")
+        ;;
+    esac
+  done
+
+  if [ ${#all_apps[@]} -eq 0 ]; then
+    local apps=( $(git config -f conf/apps.ini --get-regexp '^app\..*\.remote$') )
+    for name in ${apps[@]}; do
+      [[ "$name" =~ / ]] && continue
+      name=${name#app.}
+      name=${name%.remote}
+      all_apps+=("$name")
+    done
+  fi
+}
+
+[ "$BASH_SOURCE" == "$0" ] && main "$@"
+
+# vim: set lisp:

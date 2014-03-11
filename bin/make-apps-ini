@@ -1,0 +1,75 @@
+#!/bin/bash
+
+source "${BASH_SOURCE%/*}/setup.bash"
+
+main() {
+  read-conf
+
+  if [ ! -f "$apps_ini_file" ]; then
+    cat <<... > "$apps_ini_file"
+; This file is generated/updated by bin/make-apps-ini
+; You can also make some hand edits too, like adding tags for apps.
+...
+  fi
+
+  for d in $(ls "$get_stackato_store_path/"*.yaml); do
+    parse-yaml-into-ini "$d"
+  done
+}
+
+parse-yaml-into-ini() {
+  local yaml="$1"
+  local name= id= desc= src= commit= mem=
+  local runtime= framework= services= license=
+  while IFS=$'\n' read line; do
+    if [[ "$line" =~ ^-\ name: ]]; then
+      if [ -n "$id" ]; then
+        write-ini-entry
+      fi
+      name="${line#- name: }"
+    elif [[ "$line" =~ ^\ \ ([^\:\ ]*)\ *:\ +(.*) ]]; then
+      printf -v "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}"
+    fi
+  done < "$yaml"
+  write-ini-entry
+}
+
+write-ini-entry() {
+  if [[ "$src" =~ ^https:// ]]; then
+    src="${src/https:\/\//git@}"
+    src="${src/\//:}"
+  fi
+  if [[ "$src" =~ github\.com ]]; then
+    src="${src%.git}"
+  fi
+
+  local new=false
+  if [ -z "$(git config -f "apps_ini_file" app.$id.name)" ]; then
+    local new=true
+  fi
+
+  git config -f "$apps_ini_file" app.$id.name "$name"
+  git config -f "$apps_ini_file" app.$id.desc "$desc"
+  git config -f "$apps_ini_file" app.$id.remote "$src"
+  git config -f "$apps_ini_file" app.$id.branch "$commit"
+  git config -f "$apps_ini_file" app.$id.memory "$mem"
+  local tags=() t t1 t2
+  for t in runtime framework services license; do
+    t1="${!t}"
+    [ -z "$t1" ] && continue
+    for t2 in ${t1//,/ }; do
+      git config -f "$apps_ini_file" app.$id.tag $t2 "^$t2\$"
+    done
+  done
+
+  if $new; then
+    echo >> "$apps_ini_file"
+  fi
+
+  name=; id=; desc=; src=; commit=; mem=
+  runtime=; framework=; services=; license=
+}
+
+[ "$BASH_SOURCE" == "$0" ] && main "$@"
+
+# vim: set lisp:

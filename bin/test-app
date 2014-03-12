@@ -7,6 +7,8 @@ source "${BASH_SOURCE%/*}/setup.bash"
 main() {
   name=${1:?'First argument is app name'}
 
+  cd "${BASH_SOURCE%/*}/.."
+
   read-conf
 
   (

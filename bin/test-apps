@@ -20,6 +20,8 @@ main() {
   local all_apps=() list= first= after=
   get-options "$@"
 
+  cd "${BASH_SOURCE%/*}/.."
+
   read-conf
 
   for name in ${all_apps[@]}; do

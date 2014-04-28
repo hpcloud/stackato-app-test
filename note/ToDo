@@ -1,6 +1,23 @@
-- Tag apps with:
-  - iggy
-- Support --tag=!iggy
+== TODO
 
-- mv conf/apps.sh conf/conf.sh
-- bin/test-app bin/app-test
+- Put apps in alpha order in apps.ini
+- tee output to individual logs
+- Support --tag=!ok-iggy
+- Check whether app staged/started.
+  - Update tags either way
+- Option to delete app after testing
+- billyt's trello report:
+  - https://trello.com/board/53307e327ab335f72240fe8c/activestate.json
+- save deploy time in mins in the apps.ini
+  - time = 7
+
+== App Changes
+* App id, stackato.yml and reponame should all match
+
+== App Bugs
+- errbit has deprecation warnings.
+
+== DONE
+
++ mv conf/apps.sh conf/conf.sh
++ bin/test-app bin/app-test

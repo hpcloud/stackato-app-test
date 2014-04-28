@@ -11,13 +11,14 @@ Usage:
 
 Options:
     -h, --help          -- Print this help
+    --test              -- Test the apps
     --list              -- List all the known apps by name
     --first=<app>       -- Start testing on this app
     --after=<app>       -- Start testing apps after this one
 "
 
 main() {
-  local all_apps=() list= first= after=
+  local all_apps=() test=false list=false first= after=
   get-options "$@"
 
   cd "${BASH_SOURCE%/*}/.."
@@ -25,17 +26,15 @@ main() {
   read-conf
 
   for name in ${all_apps[@]}; do
-    branch="$(git config -f conf/apps.ini app.$name.branch)"
-
     if [ -n "$tag" ]; then
-      if [ -z "$(git config -f conf/apps.ini --get-all app.$name.tag "^$tag\$")" ]; then
+      if [[ "$tag" =~ ^! ]]; then
+        tag="${tag#!}"
+        if [ -n "$(git config -f conf/apps.ini --get-all app.$name.tag "^$tag\$")" ]; then
+          continue
+        fi
+      elif [ -z "$(git config -f conf/apps.ini --get-all app.$name.tag "^$tag\$")" ]; then
         continue
       fi
-    fi
-
-    if [ -n "$list" ]; then
-      echo ">>> $name"
-      continue
     fi
 
     if [ -n "$first" ]; then
@@ -53,7 +52,21 @@ main() {
       continue
     fi
 
-    PATH=./bin:$PATH test-app "$name" "$branch"
+    if "$list"; then
+      echo "$name"
+      continue
+    fi
+
+    if "$test"; then
+      PATH=./bin:$PATH app-test \
+        "$name" \
+        "$(git config -f conf/apps.ini app.$name.branch)"
+      continue
+    fi
+
+    echo "You need to specify --list or --test"
+    echo "$USAGE"
+    exit 1
   done
 }
 
@@ -64,8 +77,11 @@ get-options() {
         echo "$USAGE"
         exit 0
         ;;
+      --test)
+        test=true
+        ;;
       --list)
-        list=1
+        list=true
         ;;
       --after=*)
         after="${arg#--after=}"

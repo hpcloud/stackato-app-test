@@ -3,7 +3,7 @@ set -e
 BASHLIB="${BASH_SOURCE%/*}/../ext/bashplus/lib"
 PATH="$BASHLIB:$PATH" source bash+.bash
 bash+:import :std
-CONF=conf/apps.sh
+CONF=conf/conf.sh
 
 read-conf() {
   source "$CONF"

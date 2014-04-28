@@ -1,0 +1,6 @@
+- Tag apps with:
+  - iggy
+- Support --tag=!iggy
+
+- mv conf/apps.sh conf/conf.sh
+- bin/test-app bin/app-test

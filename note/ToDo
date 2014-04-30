@@ -12,7 +12,7 @@
   - time = 7
 
 == App Changes
-* App id, stackato.yml and reponame should all match
+- Merge upstream changes on apps that are forks
 
 == App Bugs
 - errbit has deprecation warnings.
@@ -21,3 +21,4 @@
 
 + mv conf/apps.sh conf/conf.sh
 + bin/test-app bin/app-test
++ App id, stackato.yml and reponame should all match

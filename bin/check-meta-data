@@ -1,0 +1,35 @@
+#!/usr/bin/env perl
+
+use strict;
+use YAML::XS;
+use XXX;
+
+my @files = `ls ../get-stackato/static/store/3.2/*.yaml`;
+
+my $store_data = {};
+for my $store_yaml_file (@files) {
+    chomp $store_yaml_file;
+    my $apps = YAML::XS::LoadFile($store_yaml_file)->{apps};
+    for my $app (@$apps) {
+        $store_data->{$app->{id}} = $app;
+    }
+}
+
+for my $app_id (sort keys %$store_data) {
+    if (my $services = $store_data->{$app_id}->{services}) {
+        printf "- %-20s%s\n", $app_id, $services;
+        my $syml_file = "apps/$app_id/stackato.yml";
+        if (-e $syml_file) {
+            my $syml = YAML::XS::LoadFile $syml_file;
+            if (my $syml_services = $syml->{services}) {
+                printf "  %s\n", join ', ', values %$syml_services;
+            }
+            else {
+                printf "  No services in stackato.yml file\n";
+            }
+        }
+        else {
+            print "  No stackato.yml file\n";
+        }
+    }
+}

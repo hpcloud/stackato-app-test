@@ -2,7 +2,6 @@
 
 use strict;
 use YAML::XS;
-use XXX;
 
 my @files = `ls ../get-stackato/static/store/3.2/*.yaml`;
 
@@ -22,7 +21,7 @@ for my $app_id (sort keys %$store_data) {
         if (-e $syml_file) {
             my $syml = YAML::XS::LoadFile $syml_file;
             if (my $syml_services = $syml->{services}) {
-                printf "  %s\n", join ', ', values %$syml_services;
+                printf "  %s\n", join ', ', sort values %$syml_services;
             }
             else {
                 printf "  No services in stackato.yml file\n";

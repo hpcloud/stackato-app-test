@@ -9,6 +9,9 @@ main() {
 
   cd "${BASH_SOURCE%/*}/.."
 
+  mkdir -p log
+  logfile="$PWD/log/$name.log"
+
   read-conf
 
   (
@@ -18,7 +21,12 @@ main() {
     echo "=== Testing 'stackato push -n' for '$name'"
     echo
 
-    stackato push -n
+    stackato push -n 2>&1 | tee "$logfile"
+
+    # Todo:
+    # - grep for 'http://ace.stackato.east.ouistreet.net/ deployed'
+    # - HEAD $URL for 200
+    # - Delete the app after it checks out (maybe with --delete option)
   )
 }
 

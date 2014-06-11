@@ -12,22 +12,74 @@ main() {
   mkdir -p log
   logfile="$PWD/log/$name.log"
 
-  read-conf
-
   (
-    cd "$apps_directory/$name"
+    read-conf
+    (
+      cd "$apps_directory/$name"
 
-    echo
-    echo "=== Testing 'stackato push -n' for '$name'"
-    echo
+      echo
+      echo "=== Testing 'stackato push -n' for '$name'"
+      echo
 
-    stackato push -n 2>&1 | tee "$logfile"
+      time stackato push -n || true
+      sleep 5
+    )
+  ) 2>&1 | tee "$logfile"
+  (
+    PASS=false
+    check-push
+    if $PASS; then
+      echo "$name passed test, so deleting instance now."
+      stackato delete -n "$name" || true
+    fi
+    if [[ "$(< $logfile)" =~ $'\n'real$'\t'([0-9]+)m([0-9]+) ]]; then
+      m="${BASH_REMATCH[1]}"
+      s="${BASH_REMATCH[2]}"
+      set-time "$(( m * 60 + s ))"
+    fi
+  ) 2>&1 | tee --append "$logfile"
+}
 
-    # Todo:
-    # - grep for 'http://ace.stackato.east.ouistreet.net/ deployed'
-    # - HEAD $URL for 200
-    # - Delete the app after it checks out (maybe with --delete option)
-  )
+check-push() {
+  local url="$(grep -E '^http.*deployed$' $logfile | tail -n1 | cut -d' ' -f1)"
+  if [ -n "$url" ]; then
+    head="$(HEAD $url)"
+    if [ -n "$(echo "$head" | grep -E '^200 OK$')" ]; then
+      tag-pass
+    else
+      echo "FAILED with:"$'\n'"$head"
+      tag-fail
+    fi
+  else
+    tag-fail
+  fi
+}
+
+tag-pass() {
+  PASS=true
+  tag-app PASS
+  untag-app FAIL
+}
+
+tag-fail() {
+  PASS=false
+  tag-app FAIL
+  untag-app PASS
+}
+
+set-time() {
+  git config -f conf/apps.ini "app.$name.time" "$1"
+}
+
+tag-app() {
+  echo "tag $name $1"
+  git config -f conf/apps.ini --unset "app.$name.tag" "^$1\$" || true
+  git config -f conf/apps.ini --add "app.$name.tag" "$1"
+}
+
+untag-app() {
+  echo "untag $name $1"
+  git config -f conf/apps.ini --unset "app.$name.tag" "^$1\$" || true
 }
 
 [ "$BASH_SOURCE" == "$0" ] && main "$@"

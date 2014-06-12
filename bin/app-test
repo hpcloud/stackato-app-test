@@ -12,22 +12,28 @@ main() {
   mkdir -p log
   logfile="$PWD/log/$name.log"
 
+  push_args="$(git config -f conf/apps.ini "app.$name.push-args")"
+
   (
     read-conf
     (
       cd "$apps_directory/$name"
 
       echo
-      echo "=== Testing 'stackato push -n' for '$name'"
+      echo "=== Testing 'stackato push $push_args -n' for '$name'"
       echo
 
-      time stackato push -n || true
+      time stackato push $push_args -n || true
       sleep 5
     )
   ) 2>&1 | tee "$logfile"
   (
     PASS=false
-    check-push
+    if [ "$(git config -f conf/apps.ini "app.$name.test")" == "manual" ]; then
+      manual-test
+    else
+      check-push
+    fi
     if $PASS; then
       echo "$name passed test, so deleting instance now."
       stackato delete -n "$name" || true
@@ -80,6 +86,15 @@ tag-app() {
 untag-app() {
   echo "untag $name $1"
   git config -f conf/apps.ini --unset "app.$name.tag" "^$1\$" || true
+}
+
+manual-test() {
+  local a=
+  if [ "$(prompt "*** MANUAL CHECK: Does it look OK? [yN] ")" == y ]; then
+    tag-pass
+  else
+    tag-fail
+  fi
 }
 
 [ "$BASH_SOURCE" == "$0" ] && main "$@"

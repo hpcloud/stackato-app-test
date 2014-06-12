@@ -11,6 +11,7 @@ main() {
 
   mkdir -p log
   logfile="$PWD/log/$name.log"
+  test_type="$(git config -f conf/apps.ini "app.$name.test")"
 
   push_args="$(git config -f conf/apps.ini "app.$name.push-args")"
 
@@ -29,7 +30,7 @@ main() {
   ) 2>&1 | tee "$logfile"
   (
     PASS=false
-    if [ "$(git config -f conf/apps.ini "app.$name.test")" == "manual" ]; then
+    if [ "$test_type" == "manual" ]; then
       manual-test
     else
       check-push

@@ -11,9 +11,8 @@ main() {
 
   mkdir -p log
   logfile="$PWD/log/$name.log"
-  test_type="$(git config -f conf/apps.ini "app.$name.test")"
-
-  push_args="$(git config -f conf/apps.ini "app.$name.push-args")"
+  test_type="$(git config -f conf/apps.ini "app.$name.test" || true)"
+  push_args="$(git config -f conf/apps.ini "app.$name.push-args" || true)"
 
   (
     read-conf
@@ -50,7 +49,7 @@ main() {
 check-push() {
   local url="$(grep -E '^http.*deployed$' $logfile | tail -n1 | cut -d' ' -f1)"
   if [ -n "$url" ]; then
-    head="$(HEAD $url)"
+    head="$(HEAD $url || true)"
     if [ -n "$(echo "$head" | grep -E '^200 OK$')" ]; then
       tag-pass
     else

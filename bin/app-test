@@ -13,6 +13,7 @@ main() {
   logfile="$PWD/log/$name.log"
   test_type="$(git config -f conf/apps.ini "app.$name.test" || true)"
   push_args="$(git config -f conf/apps.ini "app.$name.push-args" || true)"
+  sleep_time="$(git config -f conf/apps.ini "app.$name.sleep" || true)"
 
   (
     read-conf
@@ -24,7 +25,11 @@ main() {
       echo
 
       time stackato push $push_args -n || true
-      sleep 5
+
+      if [ -n "$sleep_time" ]; then
+        echo "Sleeping $sleep_time seconds..."
+        sleep "$sleep_time"
+      fi
     )
   ) 2>&1 | tee "$logfile"
   (

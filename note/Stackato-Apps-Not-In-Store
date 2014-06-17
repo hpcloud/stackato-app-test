@@ -10,6 +10,7 @@ dexy-altitude
 dillinger
 django-polls
 docker-registry
+dogeweather
 etherpad-lite
 example-python-django
 feersum
@@ -28,6 +29,7 @@ jaspersoft
 kitchensink-ear
 logstash
 mason-helloworld
+meteor-wordplay
 mojo-helloworld
 moviefun
 multisweeper
@@ -38,10 +40,8 @@ perlcritic.com
 pet-catalog
 pet-clinic
 pet-store
-photobooth
 phpbb3
 phpmyadmin
-pinax-social
 pinry
 play-chat
 play-hello

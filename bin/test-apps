@@ -15,6 +15,7 @@ Options:
     --list              -- List all the known apps by name
     --first=<app>       -- Start testing on this app
     --after=<app>       -- Start testing apps after this one
+    --tag=<tag>         -- Select apps by tag
 "
 
 main() {

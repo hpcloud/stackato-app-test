@@ -14,6 +14,7 @@ main() {
   test_type="$(git config -f conf/apps.ini "app.$name.test" || true)"
   push_args="$(git config -f conf/apps.ini "app.$name.push-args" || true)"
   sleep_time="$(git config -f conf/apps.ini "app.$name.sleep" || true)"
+  poll_interval="$(git config -f conf/apps.ini "app.$name.poll-interval" || echo 10)"
 
   (
     read-conf
@@ -34,6 +35,8 @@ main() {
   ) 2>&1 | tee "$logfile"
   (
     PASS=false
+    app_url="$(grep -Po '(?<=Application Url:   )http.*' $logfile)"
+    app_url="$(echo ${app_url/https/http})"
     if [ "$test_type" == "manual" ]; then
       manual-test
     else
@@ -55,13 +58,44 @@ check-push() {
   local url="$(grep -E '^http.*deployed$' $logfile | tail -n1 | cut -d' ' -f1)"
   if [ -n "$url" ]; then
     head="$(HEAD $url || true)"
-    if [ -n "$(echo "$head" | grep -E '^200 OK$')" ]; then
-      tag-pass
-    else
-      echo "FAILED with:"$'\n'"$head"
-      tag-fail
-    fi
+    check-response
   else
+    check-still-staging
+  fi
+}
+
+check-still-staging() {
+  log_tail="$(tail $logfile)"
+  staging_error="Error: Application failed to stage"
+  if [[ "$log_tail" =~ "$staging_error" ]]; then
+    poll-logs "$log_tail"
+  else
+    tag-fail
+  fi
+}
+
+poll-logs() {
+  source_log_tail=$1
+
+  echo "check if still staging in $poll_interval seconds..."
+  sleep $poll_interval
+  current_log_tail="$(stackato logs --num 10 $name)"
+
+  if [[ "$source_log_tail" == "$current_log_tail" ]]; then
+    # logs have stopped updating within the polling interval, if the app
+    # is still running increase the poll-interval in apps.ini
+    head="$(HEAD $app_url || true)"
+    check-response
+  else 
+    poll-logs "$current_log_tail"
+  fi
+}
+
+check-response() {
+  if [ -n "$(echo "$head" | grep -E '^200 OK$')" ]; then
+    tag-pass
+  else
+    echo "FAILED with:"$'\n'"$head"
     tag-fail
   fi
 }

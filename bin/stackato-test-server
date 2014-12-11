@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+
+set -e
+
+source "${BASH_SOURCE%/*}/setup.bash"
+
+default_region=region-a.geo-1
+default_tenant=hpcs@activestate.com-tenant1
+default_auth=https://region-a.geo-1.identity.hpcloudsvc.com:35357/v2.0/
+
+usage() {
+  cat <<...
+Usage:
+  $0 new <new-options>
+  $0 kill <instance-id>
+
+Stackato-New Options:
+  -a <floating-ip-address>  *required*
+  -i <image-id>
+  -f <flavor-number>
+  -n <network-id>
+  -s <secgroup-list>  (comma separated)
+
+...
+}
+
+main() {
+  set-vars
+  get-opts "$@"
+  do-"$command"
+}
+
+do-new() {
+  instance_id="$(
+    boot-stackato |
+    grep -E '^\| id ' |
+    perl -pe 's/ +/\t/g' |
+    cut -f 4
+  )"
+
+  cat <<...
+Name: $instance_name
+Id:   $instance_id
+Addr: $float_ip_addr
+...
+
+  "$script_bin/nova-hpcs" add-floating-ip "$instance_id" "$float_ip_addr"
+}
+
+do-kill() {
+  (
+    set -x
+    "$script_bin/nova-hpcs" delete "$instance_id"
+  )
+  echo "Killed instance '$instance_id'"
+}
+
+boot-stackato() {
+  (
+    set -x
+    "$script_bin/nova-hpcs" boot --poll \
+      --image="$image_id" \
+      --flavor="$flavor_number" \
+      --security_groups="$sec_group_list" \
+      --nic net-id="$network_id" \
+      "$instance_name"
+  )
+}
+
+get-opts() {
+  if [ $# -eq 0 ]; then
+    usage
+    exit
+  fi
+  command="$1"; shift
+  [[ "$command" =~ ^(help|new|kill)$ ]] ||
+    die "First argument for '$0' must be 'new' or 'kill'"
+
+  # Stackato 3.4.1
+  image_id="${STACKATO_HPCS_IMAGE:-3a28c4f1-c7fc-4440-8d86-e5603a9c1c0f}"
+  # Large size
+  flavor_number="${STACKATO_HPCS_FLAVOR:-103}"
+  # Security groups
+  sec_group_list="${STACKATO_HPCS_SECGROUPS:-default,harbor}"
+  # ActiveState-network
+  network_id=9f16b56d-d130-48a9-9841-74875b93ea91
+
+  instance_name="Test-Stackato-$USER"
+
+  local v=
+  for arg in "$@"; do
+    if [ "$arg" == '-a' ]; then
+      v=float_ip_addr
+    elif [ "$arg" == '-i' ]; then
+      v=image_id
+    elif [ "$arg" == '-f' ]; then
+      v=flavor_number
+    elif [ "$arg" == '-s' ]; then
+      v=sec_group_list
+    elif [ "$arg" == '-n' ]; then
+      v=network_id
+    else
+      if [ -n "$v" ]; then
+        printf -v "$v" "$arg"
+      else
+        instance_name="$arg"
+        instance_id="$arg"
+      fi
+      v=
+    fi
+  done
+  [ $command != 'new' -o -n "$float_ip_addr" ] ||
+    die "'$0 new' requires ip address (-a option)"
+}
+
+set-vars() {
+  script_bin="$(dirname $0)"
+}
+
+[ "${BASH_SOURCE[0]}" != "$0" ] || main "$@"
+
+# vim: set lisp:

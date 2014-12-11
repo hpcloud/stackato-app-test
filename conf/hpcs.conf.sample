@@ -1,0 +1,13 @@
+export STACKATO_HPCS_USERID=   # your HPCS account user id
+export STACKATO_HPCS_PASSWD=   # your HPCS account password
+
+export STACKATO_HPCS_TENANT=hpcs@activestate.com-tenant1
+export STACKATO_HPCS_AUTH=https://region-a.geo-1.identity.hpcloudsvc.com:35357/v2.0/
+export STACKATO_HPCS_REGION=region-a.geo-1
+
+# Stackato 3.4.1
+export STACKATO_HPCS_IMAGE=3a28c4f1-c7fc-4440-8d86-e5603a9c1c0f
+# Size Large
+export STACKATO_HPCS_FLAVOR=103
+# Security groups
+export STACKATO_HPCS_SECGROUPS=default,harbor

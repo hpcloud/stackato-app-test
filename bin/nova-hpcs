@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+
+set -e
+
+source "${BASH_SOURCE%/*}/setup.bash"
+
+default_region=region-a.geo-1
+default_tenant=hpcs@activestate.com-tenant1
+default_auth=https://region-a.geo-1.identity.hpcloudsvc.com:35357/v2.0/
+
+usage() {
+  cat <<...
+Usage:
+  $0 <nova-command> <arguments>
+  $0 stackato-new <new-options>
+
+Nova Commands:
+  list            - List Compute Instances (VMs)
+  image-list      - List Available Images
+  flavor-list     - List Compute Flavors
+  floating-list   - List Floating IP Addresses
+  secgroup-list   - List Security Groups
+  help            - Show all nova commands
+
+  stackato-new    - Launch a New Stackato Instance
+
+Stackato-New Options:
+  -a <floating-ip-address>  *required*
+  -i <image-id>
+  -f <flavor-number>
+  -n <network-id>
+  -s <secgroup-list>  (comma separated)
+
+...
+}
+
+main() {
+  set-vars
+  init-env
+  nova "$@" | trim-output
+}
+
+init-env() {
+  [ -f "$STACKATO_HPCS_CONFIG" ] ||
+    die "Config file must be in STACKATO_HPCS_CONFIG"
+  source "$STACKATO_HPCS_CONFIG"
+
+  # You need to have at least these 2 values in $STACKATO_HPCS_CONFIG:
+  export OS_USERNAME="${STACKATO_HPCS_USERID:?$user_err}"
+  export OS_PASSWORD="${STACKATO_HPCS_PASSWD:?$pass_err}"
+
+  export OS_TENANT_NAME="${STACKATO_HPCS_TENANT:-$default_tenant}"
+  export OS_AUTH_URL="${STACKATO_HPCS_AUTH:-$default_auth}"
+  export OS_REGION_NAME="${STACKATO_HPCS_REGION:-$default_region}"
+}
+
+set-vars() {
+  user_err="Define STACKATO_HPCS_USERID in '$STACKATO_HPCS_CONFIG'"
+  pass_err="Define STACKATO_HPCS_PASSWD in '$STACKATO_HPCS_CONFIG'"
+
+  if [ -t 0 -a -t 1 ]; then
+    interactive=true
+  else
+    interactive=false
+  fi
+}
+
+trim-output() {
+  if $interactive; then
+    local width=$(tput cols)
+    cut -c 1-$width
+  else
+    cat
+  fi
+}
+
+[ "${BASH_SOURCE[0]}" != "$0" ] || main "$@"
+
+# vim: set lisp:

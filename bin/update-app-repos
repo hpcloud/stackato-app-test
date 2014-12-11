@@ -48,6 +48,6 @@ git-pull-repo() {
   )
 }
 
-[ "$BASH_SOURCE" == "$0" ] && main "$@"
+[ "$BASH_SOURCE" != "$0" ] || main "$@"
 
 # vim: set lisp:
